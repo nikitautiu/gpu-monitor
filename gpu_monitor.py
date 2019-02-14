@@ -34,6 +34,8 @@ parser.add_argument('-f', '--finger', action='store_true',
                     help='Attempt to resolve user names to real names')
 parser.add_argument('-m', '--me', action='store_true',
                     help='Show only GPUs used by current user')
+parser.add_argument('-U', '--utilization', action='store_true',
+                    help='Display GPU utilization')
 parser.add_argument('-u', '--user', help='Shows only GPUs used by a user')
 parser.add_argument('-s', '--ssh-user', default=None,
                     help='Username to use to connect with SSH')
@@ -209,7 +211,8 @@ def get_memory_usage(gpu_info, users_by_pid):
 
 def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
                     filter_by_user=None,
-                    translate_to_real_names=False):
+                    translate_to_real_names=False,
+                    show_utilization=False):
     pids = [pid for gpu_info in gpu_infos for pid in gpu_info['pids']]
     if len(pids) > 0:
         ps = run_ps(pids=pids)
@@ -236,28 +239,47 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
         if filter_by_user is not None and filter_by_user not in users:
             continue
 
+        # build the gpu info string
         if len(gpu_info['pids']) == 0:
             status = 'Free'
         else:
-            if translate_to_real_names:
-                users = ['{} ({}, {} MiB)'.format(user, real_names_by_users[user],
-                                                  memory_used_by_user[user])
-                         for user in users]
-            else:
-                users = ['{} ({} MiB)'.format(user, memory_used_by_user[user])
-                         for user in users]
-            status = 'Used by {}'.format(', '.join(users))
+            user_texts = []
+            for user in users:
+                user_text = '{}'.format(user)  # add the user name at first
 
-        # append the column data to format
-        gpu_text_data.append([
+                # build extra string
+                extra_texts = []
+                if translate_to_real_names:
+                    extra_texts.append('{}'.format(real_names_by_users[user]))
+                if show_utilization:
+                    extra_texts.append('{} MiB'.format(memory_used_by_user[user]))
+
+                # append extra text if any
+                if len(extra_texts) != 0:
+                    user_text += ' ({})'.format(', '.join(extra_texts))
+
+                user_texts.append(user_text)  # add it to the list
+
+            status = 'Used by {}'.format(', '.join(user_texts))
+
+        # build the entire line
+        data_entries = [
             '\tGPU {}'.format(gpu_info['idx']),
-            '({},'.format(gpu_info['model']),
-            str(gpu_info['utilization']),
-            '%,',
-            '{}/{}'.format(used_memory, gpu_info['total_memory']),
-            'MiB):',
-            status
-        ])
+        ]
+
+        # show memory and utilization or just model
+        if show_utilization:
+            data_entries += [
+                '({},'.format(gpu_info['model']),
+                '{}%,'.format(gpu_info['utilization']),
+                '{}/{}'.format(used_memory, gpu_info['total_memory']),
+                'MiB):',
+            ]
+        else:
+            data_entries += ['({})'.format(gpu_info['model'])]
+
+        data_entries += [status]
+        gpu_text_data.append(data_entries)
 
     # print them, aligned
     info(format_aligned(gpu_text_data))
@@ -265,7 +287,6 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
 
 def main(argv):
     args = parser.parse_args(argv)
-
     logging.basicConfig(format='%(message)s',
                         level=logging.DEBUG if args.verbose else logging.INFO)
 
@@ -325,7 +346,8 @@ def main(argv):
         if args.list:
             print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
                             filter_by_user=args.user,
-                            translate_to_real_names=args.finger)
+                            translate_to_real_names=args.finger,
+                            show_utilization=args.utilization)
         else:
             print_free_gpus(server, gpu_infos)
 
