@@ -77,6 +77,16 @@ EOF
 REMOTE_REAL_NAMES_CMD = '{} python - {}'.format(SSH_CMD, REAL_NAMES_CMD)
 
 
+def format_aligned(data, padding=1):
+    """Given a 2d array/list od lists of strings, format them into a
+    table with the given right padding per column"""
+    text_rows = []
+    col_widths = [max(len(word) for word in row) + padding for row in zip(*data)]  # padding
+    for row in data:
+        text_rows.append("".join(word.ljust(col_widths[ind]) for ind, word in enumerate(row)))
+    return "\n".join(text_rows)  # return the padded columns
+
+
 def run_command(cmd):
     debug('Running command: "{}"'.format(cmd))
 
@@ -166,12 +176,14 @@ def get_gpu_infos(nvidiasmi_output):
     for idx, gpu in enumerate(gpus):
         model = gpu.find('product_name').text
         total_memory = int(gpu.find('fb_memory_usage/total').text.split(' ')[0])
+        utilization = int(gpu.find('utilization/gpu_util').text.split(' ')[0])
         processes = gpu.findall('processes')[0]
 
         pids = [process.find('pid').text for process in processes]
         memory = [int(process.find('used_memory').text.split(' ')[0]) for process in processes]
         gpu_infos.append({'idx': idx, 'model': model, 'pids': pids,
-                          'memory': memory, 'total_memory': total_memory})
+                          'memory': memory, 'total_memory': total_memory,
+                          'utilization': utilization})
 
     return gpu_infos
 
@@ -215,9 +227,11 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
         real_names_by_users = run_get_real_names(users=all_users)
 
     info('Server {}:'.format(server))
+    gpu_text_data = []
     for gpu_info in gpu_infos:
         users = set((users_by_pid[pid] for pid in gpu_info['pids']))
         memory_used_by_user = get_memory_usage(gpu_info, users_by_pid)
+        used_memory = sum(memory_used_by_user.values())
 
         if filter_by_user is not None and filter_by_user not in users:
             continue
@@ -226,16 +240,25 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
             status = 'Free'
         else:
             if translate_to_real_names:
-                users = ['{} ({})({} MiB)'.format(user, real_names_by_users[user],
+                users = ['{} ({}, {} MiB)'.format(user, real_names_by_users[user],
                                               memory_used_by_user[user])
                          for user in users]
 
             status = 'Used by {}'.format(', '.join(users))
 
-        info('\tGPU {} ({})({} MiB): {}'.format(gpu_info['idx'],
-                                        gpu_info['model'],
-                                        gpu_info['total_memory'],
-                                        status))
+        # append the column data to format
+        gpu_text_data.append([
+            '\tGPU {}'.format(gpu_info['idx']),
+            '({},'.format(gpu_info['model']),
+            str(gpu_info['utilization']),
+            '%,',
+            '{}/{}'.format(used_memory, gpu_info['total_memory']),
+            'MiB):',
+            status
+        ])
+
+    # print them, aligned
+    info(format_aligned(gpu_text_data))
 
 
 def main(argv):
