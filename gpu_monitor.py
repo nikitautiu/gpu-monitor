@@ -213,6 +213,8 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
                     filter_by_user=None,
                     translate_to_real_names=False,
                     show_utilization=False):
+
+    # get pids of processes using the gpu and get their corresponding users
     pids = [pid for gpu_info in gpu_infos for pid in gpu_info['pids']]
     if len(pids) > 0:
         ps = run_ps(pids=pids)
@@ -224,12 +226,16 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
     else:
         users_by_pid = {}
 
+    # find full names of users
     if translate_to_real_names:
         all_users = set((users_by_pid[pid] for gpu_info in gpu_infos
                          for pid in gpu_info['pids']))
         real_names_by_users = run_get_real_names(users=all_users)
 
+    # print the server name
     info('Server {}:'.format(server))
+
+    # build and print info for each server
     gpu_text_data = []
     for gpu_info in gpu_infos:
         users = set((users_by_pid[pid] for pid in gpu_info['pids']))
@@ -278,8 +284,8 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
         else:
             data_entries += ['({})'.format(gpu_info['model'])]
 
-        data_entries += [status]
-        gpu_text_data.append(data_entries)
+        data_entries += [status]  # append the status at the end
+        gpu_text_data.append(data_entries)  # add another line
 
     # print them, aligned
     info(format_aligned(gpu_text_data))

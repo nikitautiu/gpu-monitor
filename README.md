@@ -13,8 +13,7 @@ The script works by using your account to SSH into the servers and running `nvid
 - Show all current users of all GPUs (-l or --list)
 - Show all GPUs used by yourself (-m or --me)
 - Resolve usernames to real names (-f or --finger)
-- Show GPU utilization
-- Show memory usage per user per gpu
+- Show GPU utilization and memory usage per user per GPU(-U or --utilization)
 
 ## Requirements
 
@@ -39,12 +38,12 @@ Once you did that, running just `./gpu_monitor.py` checks all servers specified 
 
 If you want to list all GPUs and who currently uses them, you can use the `-l` flag:
 ```
-> ./gpu_monitor.py -l myserver.com
+> ./gpu_monitor.py -lU myserver.com
 
 Server myserver.com:
-        GPU 0 (GeForce RTX 2080 Ti, 0  %, 23/10986   MiB): Used by gdm (23 MiB)      
-        GPU 1 (GeForce RTX 2080 Ti, 33 %, 4933/10989 MiB): Used by joe (4933 MiB)
-        GPU 3 (GeForce RTX 2080 Ti, 0  %, 0/10989    MiB): Free
+        GPU 0 (GeForce RTX 2080 Ti, 0%,  23/10986   MiB): Used by gdm (23 MiB)      
+        GPU 1 (GeForce RTX 2080 Ti, 33%, 4933/10989 MiB): Used by joe (4933 MiB)
+        GPU 3 (GeForce RTX 2080 Ti, 0%,  0/10989    MiB): Free
 ```
 
 If you just want to see the GPUs used by yourself, you can use the `--me` flag.
@@ -52,18 +51,18 @@ This requires that your user name is the same as remotely, or that you specify t
 ```
 > ./gpu_monitor.py --me myserver.com
 Server myserver.com:
-        GPU 3 (GeForce RTX 2080 Ti, 0 %, 23/10986 MiB): Used by joe (23 MiB)
+        GPU 3 (GeForce RTX 2080 Ti): Used by joe
 ```
 
 Finally, if you also want to see the real names of users, you can use the `-f` flag.
 This uses Linux's `finger` command.
 ```
-> ./gpu_monitor.py -f myserver.com
+> ./gpu_monitor.py -fU myserver.com
 
 Server myserver.com:
-      	GPU 0 (GeForce RTX 2080 Ti, 0  %, 23/10986   MiB): Used by gdm (Gnome Display Manager, 23 MiB)      
+      	GPU 0 (GeForce RTX 2080 Ti, 0%,   23/10986   MiB): Used by gdm (Gnome Display Manager, 23 MiB)      
       	GPU 1 (GeForce RTX 2080 Ti, 33 %, 4933/10989 MiB): Used by joe (Joe Average, 4933 MiB)
-        GPU 3 (GeForce RTX 2080 Ti, 0  %, 0/10989    MiB): Free
+        GPU 3 (GeForce RTX 2080 Ti, 0%,   0/10989    MiB): Free
 ```
 
 ## Setup for Convenience
