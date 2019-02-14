@@ -165,9 +165,13 @@ def get_gpu_infos(nvidiasmi_output):
     gpu_infos = []
     for idx, gpu in enumerate(gpus):
         model = gpu.find('product_name').text
+        total_memory = int(gpu.find('fb_memory_usage/total').text.split(' ')[0])
         processes = gpu.findall('processes')[0]
+
         pids = [process.find('pid').text for process in processes]
-        gpu_infos.append({'idx': idx, 'model': model, 'pids': pids})
+        memory = [int(process.find('used_memory').text.split(' ')[0]) for process in processes]
+        gpu_infos.append({'idx': idx, 'model': model, 'pids': pids,
+                          'memory': memory, 'total_memory': total_memory})
 
     return gpu_infos
 
@@ -181,6 +185,14 @@ def print_free_gpus(server, gpu_infos):
         info('Server {}:'.format(server))
         for gpu_info in free_gpus:
             info('\tGPU {}, {}'.format(gpu_info['idx'], gpu_info['model']))
+
+
+def get_memory_usage(gpu_info, users_by_pid):
+    memory_usage = {}
+    for pid, memory in zip(gpu_info['pids'], gpu_info['memory']):
+        memory_usage[users_by_pid[pid]] = memory_usage.get(users_by_pid[pid], 0) + memory
+
+    return memory_usage
 
 
 def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
@@ -205,6 +217,8 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
     info('Server {}:'.format(server))
     for gpu_info in gpu_infos:
         users = set((users_by_pid[pid] for pid in gpu_info['pids']))
+        memory_used_by_user = get_memory_usage(gpu_info, users_by_pid)
+
         if filter_by_user is not None and filter_by_user not in users:
             continue
 
@@ -212,13 +226,15 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
             status = 'Free'
         else:
             if translate_to_real_names:
-                users = ['{} ({})'.format(user, real_names_by_users[user])
+                users = ['{} ({})({} MiB)'.format(user, real_names_by_users[user],
+                                              memory_used_by_user[user])
                          for user in users]
 
             status = 'Used by {}'.format(', '.join(users))
 
-        info('\tGPU {} ({}): {}'.format(gpu_info['idx'],
+        info('\tGPU {} ({})({} MiB): {}'.format(gpu_info['idx'],
                                         gpu_info['model'],
+                                        gpu_info['total_memory'],
                                         status))
 
 
