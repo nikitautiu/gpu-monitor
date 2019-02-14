@@ -241,9 +241,11 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
         else:
             if translate_to_real_names:
                 users = ['{} ({}, {} MiB)'.format(user, real_names_by_users[user],
-                                              memory_used_by_user[user])
+                                                  memory_used_by_user[user])
                          for user in users]
-
+            else:
+                users = ['{} ({} MiB)'.format(user, memory_used_by_user[user])
+                         for user in users]
             status = 'Used by {}'.format(', '.join(users))
 
         # append the column data to format
