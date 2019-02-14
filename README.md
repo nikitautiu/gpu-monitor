@@ -1,10 +1,11 @@
-# Remote GPU Monitor
+# Remote GPU Monitor -- FORK
+*Thanks to* `mseitzer` *for the original script!*
 
 This Python script allows to check for free Nvidia GPUs in remote servers.
 Additional features include to list the type of GPUs and who's using them.
 The idea is to speed up the work of finding a free GPU in institutions that share multiple GPU servers.
 
-The script works by using your account to SSH into the servers and running `nvidia-smi`. 
+The script works by using your account to SSH into the servers and running `nvidia-smi`.
 
 ## Features
 
@@ -12,6 +13,8 @@ The script works by using your account to SSH into the servers and running `nvid
 - Show all current users of all GPUs (-l or --list)
 - Show all GPUs used by yourself (-m or --me)
 - Resolve usernames to real names (-f or --finger)
+- Show GPU utilization
+- Show memory usage per user per gpu
 
 ## Requirements
 
@@ -28,8 +31,7 @@ You might need to enter your password. To avoid that, follow the steps in [setup
 > ./gpu_monitor.py myserver.com
 
 Server myserver.com:
-        GPU 5, Tesla K80
-        GPU 7, Tesla K80
+	GPU 1, GeForce RTX 2080 Ti
 ```
 
 If you have some set of servers that you regularily check, specify them in the file `servers.txt`, one address per line.
@@ -40,14 +42,9 @@ If you want to list all GPUs and who currently uses them, you can use the `-l` f
 > ./gpu_monitor.py -l myserver.com
 
 Server myserver.com:
-        GPU 0 (Tesla K80): Used by userA
-        GPU 1 (Tesla K80): Used by userB
-        GPU 2 (Tesla K80): Used by userA
-        GPU 3 (Tesla K80): Used by userC
-        GPU 4 (Tesla K80): Used by userC
-        GPU 5 (Tesla K80): Free
-        GPU 6 (Tesla K80): Used by userD
-        GPU 7 (Tesla K80): Free
+        GPU 0 (GeForce RTX 2080 Ti, 0  %, 23/10986   MiB): Used by gdm (23 MiB)      
+        GPU 1 (GeForce RTX 2080 Ti, 33 %, 4933/10989 MiB): Used by joe (4933 MiB)
+        GPU 3 (GeForce RTX 2080 Ti, 0  %, 0/10989    MiB): Free
 ```
 
 If you just want to see the GPUs used by yourself, you can use the `--me` flag.
@@ -55,7 +52,7 @@ This requires that your user name is the same as remotely, or that you specify t
 ```
 > ./gpu_monitor.py --me myserver.com
 Server myserver.com:
-        GPU 3 (Tesla K80): Used by userC
+        GPU 3 (GeForce RTX 2080 Ti, 0 %, 23/10986 MiB): Used by joe (23 MiB)
 ```
 
 Finally, if you also want to see the real names of users, you can use the `-f` flag.
@@ -64,14 +61,9 @@ This uses Linux's `finger` command.
 > ./gpu_monitor.py -f myserver.com
 
 Server myserver.com:
-        GPU 0 (Tesla K80): Used by userA (Sue Parsons)
-        GPU 1 (Tesla K80): Used by userB (Tim MacDonald)
-        GPU 2 (Tesla K80): Used by userA (Sue Parsons)
-        GPU 3 (Tesla K80): Used by userC (Neil Piper)
-        GPU 4 (Tesla K80): Used by userC (Neil Piper)
-        GPU 5 (Tesla K80): Free
-        GPU 6 (Tesla K80): Used by userD (Brandon Ross)
-        GPU 7 (Tesla K80): Free
+      	GPU 0 (GeForce RTX 2080 Ti, 0  %, 23/10986   MiB): Used by gdm (Gnome Display Manager, 23 MiB)      
+      	GPU 1 (GeForce RTX 2080 Ti, 33 %, 4933/10989 MiB): Used by joe (Joe Average, 4933 MiB)
+        GPU 3 (GeForce RTX 2080 Ti, 0  %, 0/10989    MiB): Free
 ```
 
 ## Setup for Convenience
@@ -103,4 +95,3 @@ User myusername
 ```
 If you are connecting to multiple servers under the same domain, you can also use `Host *.mydomain.com` to indicate that you are using the same user name for all of them.
 3. If you have an SSH key with a different name, you also add the line `IdentityFile path_to_ssh_key` after the `User` line.
-
