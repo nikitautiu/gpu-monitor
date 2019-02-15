@@ -36,6 +36,10 @@ parser.add_argument('-m', '--me', action='store_true',
                     help='Show only GPUs used by current user')
 parser.add_argument('-U', '--utilization', action='store_true',
                     help='Display GPU utilization')
+parser.add_argument('-g', '--graphical', action='store_true',
+                    help='Display only graphical processes')
+parser.add_argument('-c', '--cuda', action='store_true',
+                    help='Display only cuda processes')
 parser.add_argument('-u', '--user', help='Shows only GPUs used by a user')
 parser.add_argument('-s', '--ssh-user', default=None,
                     help='Username to use to connect with SSH')
@@ -172,22 +176,49 @@ def get_users_by_pid(ps_output):
 
 
 def get_gpu_infos(nvidiasmi_output):
+    """Given the XML output of nvidia-smi, return parsed information on a per-gpu basis"""
     gpus = nvidiasmi_output.findall('gpu')
 
     gpu_infos = []
     for idx, gpu in enumerate(gpus):
         model = gpu.find('product_name').text
         total_memory = int(gpu.find('fb_memory_usage/total').text.split(' ')[0])
+        total_used_memory = int(gpu.find('fb_memory_usage/used').text.split(' ')[0])
         utilization = int(gpu.find('utilization/gpu_util').text.split(' ')[0])
         processes = gpu.findall('processes')[0]
 
         pids = [process.find('pid').text for process in processes]
         memory = [int(process.find('used_memory').text.split(' ')[0]) for process in processes]
-        gpu_infos.append({'idx': idx, 'model': model, 'pids': pids,
-                          'memory': memory, 'total_memory': total_memory,
+        proc_type = [process.find('type').text for process in processes]
+        gpu_infos.append({'idx': idx, 'model': model,
+                          'pids': pids,
+                          'proc_type': proc_type,
+                          'memory': memory,
+                          'total_memory': total_memory,
+                          'total_used_memory': total_used_memory,
                           'utilization': utilization})
 
     return gpu_infos
+
+
+def filter_gpu_info(gpu_info, graphical=True, cuda=True):
+    """Given a gpu info dictionary with pids, proc_type and memory, filter the process info based on the flags.
+    The flags specify whether to keep only graphical or cuda processes or both."""
+    accepted_proc_types = []
+    if graphical:
+        accepted_proc_types += ['G']
+    if cuda:
+        accepted_proc_types += ['C']
+
+    gpu_info = dict(**gpu_info)  # copy the contents
+    # filter the process info
+    gpu_info['pids'] = [elem for elem, proc_type in zip(gpu_info['pids'], gpu_info['proc_type'])
+                        if proc_type in accepted_proc_types]
+    gpu_info['memory'] = [elem for elem, proc_type in zip(gpu_info['memory'], gpu_info['proc_type'])
+                          if proc_type in accepted_proc_types]
+    gpu_info['proc_type'] = [elem for elem, proc_type in zip(gpu_info['proc_type'], gpu_info['proc_type'])
+                             if proc_type in accepted_proc_types]
+    return gpu_info
 
 
 def print_free_gpus(server, gpu_infos):
@@ -239,7 +270,7 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
     for gpu_info in gpu_infos:
         users = set((users_by_pid[pid] for pid in gpu_info['pids']))
         memory_used_by_user = get_memory_usage(gpu_info, users_by_pid)
-        used_memory = sum(memory_used_by_user.values())
+        used_memory = gpu_info['total_used_memory']
 
         if filter_by_user is not None and filter_by_user not in users:
             continue
@@ -347,6 +378,13 @@ def run_cmd(argv):
             continue
 
         gpu_infos = get_gpu_infos(nvidiasmi)
+
+        # filter info
+        graphical_flag = (not (args.graphical or args.cuda)) or args.graphical
+        cuda_flag = (not (args.graphical or args.cuda)) or args.cuda
+
+        gpu_infos = [filter_gpu_info(gpu_info, graphical=graphical_flag, cuda=cuda_flag)
+                     for gpu_info in gpu_infos]
 
         if args.list:
             print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
