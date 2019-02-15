@@ -60,9 +60,9 @@ This uses Linux's `finger` command.
 > ./gpu_monitor.py -fU myserver.com
 
 Server myserver.com:
-      	GPU 0 (GeForce RTX 2080 Ti, 0%,   23/10986   MiB): Used by gdm (Gnome Display Manager, 23 MiB)      
-      	GPU 1 (GeForce RTX 2080 Ti, 33 %, 4933/10989 MiB): Used by joe (Joe Average, 4933 MiB)
-        GPU 3 (GeForce RTX 2080 Ti, 0%,   0/10989    MiB): Free
+      	GPU 0 (GeForce RTX 2080 Ti, 0%,  23/10986   MiB): Used by gdm (Gnome Display Manager, 23 MiB)      
+      	GPU 1 (GeForce RTX 2080 Ti, 33%, 4933/10989 MiB): Used by joe (Joe Average, 4933 MiB)
+        GPU 3 (GeForce RTX 2080 Ti, 0%,  0/10989    MiB): Free
 ```
 
 ## Setup for Convenience

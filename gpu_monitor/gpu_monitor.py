@@ -213,7 +213,6 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
                     filter_by_user=None,
                     translate_to_real_names=False,
                     show_utilization=False):
-
     # get pids of processes using the gpu and get their corresponding users
     pids = [pid for gpu_info in gpu_infos for pid in gpu_info['pids']]
     if len(pids) > 0:
@@ -291,7 +290,7 @@ def print_gpu_infos(server, gpu_infos, run_ps, run_get_real_names,
     info(format_aligned(gpu_text_data))
 
 
-def main(argv):
+def run_cmd(argv):
     args = parser.parse_args(argv)
     logging.basicConfig(format='%(message)s',
                         level=logging.DEBUG if args.verbose else logging.INFO)
@@ -358,5 +357,9 @@ def main(argv):
             print_free_gpus(server, gpu_infos)
 
 
+def main():
+    run_cmd(sys.argv[1:])
+
+
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
