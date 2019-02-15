@@ -10,10 +10,11 @@ The script works by using your account to SSH into the servers and running `nvid
 ## Features
 
 - Show all free GPUs across servers
-- Show all current users of all GPUs (-l or --list)
-- Show all GPUs used by yourself (-m or --me)
-- Resolve usernames to real names (-f or --finger)
+- Show all current users of all GPUs (`-l` or `--list`)
+- Show all GPUs used by yourself (`-m` or `--me`)
+- Resolve usernames to real names (`-f` or `--finger`)
 - Show GPU utilization and memory usage per user per GPU(-U or --utilization)
+- Filter users by what type their processes are(`-c` or `--cuda` for cuda processes, `-g` or `--graphical` for graphical processes. Default: both)
 
 ## Requirements
 
